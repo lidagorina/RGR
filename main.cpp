@@ -1,6 +1,8 @@
 #include<iostream>
 #include<fstream>
 //подключить свои h файлы
+#include"Playfair.h"
+
 using namespace std;
 
 enum Choice{
@@ -39,12 +41,16 @@ int main(){
     int input_choice;
     cin >> input_choice;
     string original;
-
+    cin.ignore();
+    
     if(input_choice == 1){
         cout << "текст " << endl;
         string line;
         while(getline(cin, line)){
-        original += line + "\n";
+            if(line.empty()){
+                break;
+            }
+            original += line + "\n";
 
         }
 
@@ -64,7 +70,8 @@ int main(){
         }
     
     }
-
+    cin.clear();
+    cin.ignore(); //решение проблемы с преносом, коорый остался в буфере
 
     switch (user_choice)
     {
@@ -72,7 +79,7 @@ int main(){
         cout << endl << "выбран шифр Плейфер" << endl;
         //запуск функции вида F(string original, int cipher_choice)
         // cipher_choice 1 или 2
-        
+        playfair_fun(original, cipher_choice);
         break;
 
     case ChaCha20:
