@@ -2,6 +2,7 @@
 #include<fstream>
 //подключить свои h файлы
 #include"Playfair.h"
+#include"chacha20.h"
 
 using namespace std;
 
@@ -45,16 +46,16 @@ int main(){
     
     if(input_choice == 1){
         cout << "текст " << endl;
-        string line;
-        while(getline(cin, line)){
-            if(line.empty()){
-                break;
-            }
-            original += line + "\n";
+        // string line;
+        // while(getline(cin, line)){
+        //     if(line.empty()){
+        //         break;
+        //     }
+        //     original += line + "\n";
 
-        }
+        // }
+        getline(cin, original);
 
-        
 
     }
 
@@ -84,6 +85,7 @@ int main(){
 
     case ChaCha20:
         cout << "выбран шифр ChaCha20" << endl;
+        ChaCha20_fun(original, cipher_choice);
         
         break;
     
