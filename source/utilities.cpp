@@ -103,7 +103,3 @@ bool ensureDirectoryExists(const string& filePath) {
     return false;
 }
 
-// ConstBuffer в вектор байт
-vector<uint8_t> bufferToVector(ConstBuffer buf) {
-    return vector<uint8_t>(buf.data, buf.data + buf.size);
-}

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "../headers/plugin_api.h"
 #include "../headers/utilities.h"
 #include "menu.h"

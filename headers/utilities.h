@@ -16,6 +16,5 @@ int readInt(const std::string& prompt);
 bool fileExists(const std::string& path);
 bool ensureDirectoryExists(const std::string& filePath);
 
-std::vector<uint8_t> bufferToVector(ConstBuffer buf);
 
 #endif
