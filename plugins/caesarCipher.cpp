@@ -3,8 +3,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
-#include <cstdio>
 #include <string>
+
+using namespace std;
 
 #ifdef _WIN32
     #define EXPORT __declspec(dllexport)
@@ -31,110 +32,84 @@ static int findCharIndex(char c) {
 
 extern "C" {
 
-// название алгоритма
-EXPORT const char* getAlgorithmName() {
-    return "Цезарь (сдвиг)";
-}
+struct AlgorithmInfo {
+    const char* name;
+    size_t key_size;
+    size_t block_size;
+    const char* key_info;
+};
 
-// инфа о ключе
-EXPORT const char* getKeyInfo() {
-    static std::string info = 
-        "Ключ: число от 1 до " + std::to_string(ALPHABET_SIZE - 1); 
-    return info.c_str();
-}
-
-// минимальный ключ
 EXPORT size_t getMinKeySize() { 
     return 1;
 }
 
-// максимальный ключ 
 EXPORT size_t getMaxKeySize() { 
-    return 5;
+    return 255;
+}
+
+// название алгоритма
+EXPORT const AlgorithmInfo* get_algorithm_info() {
+    static AlgorithmInfo info = {
+        "Цезарь",
+        1,
+        0,
+        "число от 1 до 255"
+    };
+    return &info;
 }
 
 // шифрование
-EXPORT int encrypt(const uint8_t* data, size_t dataSize,
-                  const uint8_t* key, size_t keySize,
-                  uint8_t* output, size_t* outputSize) {
-    if (!data || !key || !output || !outputSize) return -1;
-    if (keySize == 0) return -2;
-    if (*outputSize < dataSize) return -3;
+EXPORT const char* encrypt_text(const char* text, unsigned char key) {
+    static string result;
+    result.clear();
     
-    int shift = 0;
-    for (size_t i = 0; i < keySize && i < 5; ++i) {
-        if (key[i] < '0' || key[i] > '9') return -2;
-        shift = shift * 10 + (key[i] - '0');
-    }
-    
-    shift = shift % ALPHABET_SIZE;
+    int shift = key % ALPHABET_SIZE;
     if (shift == 0) shift = 3;
     
-    for (size_t i = 0; i < dataSize; ++i) {
-        char c = static_cast<char>(data[i]);
+    size_t len = strlen(text);
+    for (size_t i = 0; i < len; ++i) {
+        char c = text[i];
         int idx = findCharIndex(c);
-        
         if (idx == -1) {
-            output[i] = data[i];
+            result += c;
         } else {
             int newIdx = (idx + shift) % ALPHABET_SIZE;
-            output[i] = static_cast<uint8_t>(ALPHABET[newIdx]);
+            result += ALPHABET[newIdx];
         }
     }
-    
-    *outputSize = dataSize;
-    return 0;
+    return result.c_str();
 }
 
 // дешифрование
-EXPORT int decrypt(const uint8_t* data, size_t dataSize,
-                  const uint8_t* key, size_t keySize,
-                  uint8_t* output, size_t* outputSize) {
-    if (!data || !key || !output || !outputSize) return -1;
-    if (keySize == 0) return -2;
-    if (*outputSize < dataSize) return -3;
+EXPORT const char* decrypt_text(const char* text, unsigned char key) {
+    static string result;
+    result.clear();
     
-    int shift = 0;
-    for (size_t i = 0; i < keySize && i < 5; ++i) {
-        if (key[i] < '0' || key[i] > '9') return -2;
-        shift = shift * 10 + (key[i] - '0');
-    }
-    
-    shift = shift % ALPHABET_SIZE;
+    int shift = key % ALPHABET_SIZE;
     if (shift == 0) shift = 3;
     
-    for (size_t i = 0; i < dataSize; ++i) {
-        char c = static_cast<char>(data[i]);
+    size_t len = strlen(text);
+    for (size_t i = 0; i < len; ++i) {
+        char c = text[i];
         int idx = findCharIndex(c);
-        
         if (idx == -1) {
-            output[i] = data[i];
+            result += c;
         } else {
             int newIdx = (idx - shift + ALPHABET_SIZE) % ALPHABET_SIZE;
-            output[i] = static_cast<uint8_t>(ALPHABET[newIdx]);
+            result += ALPHABET[newIdx];
         }
     }
-    
-    *outputSize = dataSize;
-    return 0;
+    return result.c_str();
 }
 
 // генерация ключа
-EXPORT int generateKey(uint8_t* keyBuffer, size_t* keyBufferSize, int param) {
-    if (!keyBuffer || !keyBufferSize) return -1;
-    
+EXPORT unsigned char generate_key() {
     srand(static_cast<unsigned>(time(nullptr)));
-    int shift = 1 + (rand() % (ALPHABET_SIZE - 1));
-    
-    char buf[16];
-    int len = snprintf(buf, sizeof(buf), "%d", shift);
-    
-    if (static_cast<size_t>(len) >= *keyBufferSize) return -3;
-    
-    memcpy(keyBuffer, buf, len);
-    *keyBufferSize = static_cast<size_t>(len);
-    
-    return 0;
+    return static_cast<unsigned char>(1 + rand() % 255);
 }
 
-} 
+EXPORT void free_memory(void* ptr) {
+   
+}
+
+}

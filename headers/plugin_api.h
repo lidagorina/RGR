@@ -16,6 +16,8 @@ struct AlgorithmInfo {
 };
 
 using GetAlgorithmInfoFunc = const AlgorithmInfo* (*)();
+using GetMinKeySizeFunc = size_t (*)();              
+using GetMaxKeySizeFunc = size_t (*)();
 using EncryptFunc = const char* (*)(const char* text, unsigned char key);
 using DecryptFunc = const char* (*)(const char* text, unsigned char key);
 using GenerateKeyFunc = unsigned char (*)();
@@ -27,6 +29,8 @@ struct Plugin {
     void* handle = nullptr;
     
     GetAlgorithmInfoFunc get_info = nullptr;
+    GetMinKeySizeFunc getMinKeySize = nullptr;        
+    GetMaxKeySizeFunc getMaxKeySize = nullptr;
     EncryptFunc encrypt = nullptr;
     DecryptFunc decrypt = nullptr;
     GenerateKeyFunc generate_key = nullptr;
