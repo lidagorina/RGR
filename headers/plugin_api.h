@@ -6,19 +6,8 @@
 #include <string>
 #include <vector>
 
-// буфер для входных данных 
-struct ConstBuffer {
-    const uint8_t* data;
-    size_t size;
-};
+using namespace std;
 
-// буфер для выходных данных 
-struct MutBuffer {
-    uint8_t* data;
-    size_t size;
-};
-
-// информация об алгоритме
 struct AlgorithmInfo {
     const char* name;
     size_t key_size;
@@ -26,28 +15,22 @@ struct AlgorithmInfo {
     const char* key_info;
 };
 
-// указатели на функции плагина
 using GetAlgorithmInfoFunc = const AlgorithmInfo* (*)();
-using GetOutputSizeFunc = size_t (*)(size_t input_size, int operation_type);
-using EncryptFunc = int (*)(ConstBuffer key, ConstBuffer input, MutBuffer* output);
-using DecryptFunc = int (*)(ConstBuffer key, ConstBuffer input, MutBuffer* output);
-using GenerateKeyFunc = int (*)(MutBuffer* key, int param);
+using EncryptFunc = const char* (*)(const char* text, unsigned char key);
+using DecryptFunc = const char* (*)(const char* text, unsigned char key);
+using GenerateKeyFunc = unsigned char (*)();
 using FreeMemoryFunc = void (*)(void* ptr);
 
-// загруженный плагин
 struct Plugin {
-    std::string name;
-    std::string path;
+    string name;
+    string path;
     void* handle = nullptr;
     
     GetAlgorithmInfoFunc get_info = nullptr;
-    GetOutputSizeFunc get_output_size = nullptr;
     EncryptFunc encrypt = nullptr;
     DecryptFunc decrypt = nullptr;
     GenerateKeyFunc generate_key = nullptr;
     FreeMemoryFunc free_memory = nullptr;
-    
-    bool supports_data_encryption = true;
 };
 
 #endif
