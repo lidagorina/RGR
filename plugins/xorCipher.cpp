@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <ctime>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -11,8 +11,6 @@ using namespace std;
 #else
     #define EXPORT __attribute__((visibility("default")))
 #endif
-
-static string g_result;
 
 static vector<string> splitUtf8(const string& str) {
     vector<string> chars;
@@ -31,12 +29,29 @@ static vector<string> splitUtf8(const string& str) {
     return chars;
 }
 
-static const string ALPH_STR = 
-    "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789";
+static vector<string> getFullAlphabet() {
+    static vector<string> alphabet;
+    if (!alphabet.empty()) return alphabet;
+
+    string base = 
+        "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+        "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+
+    alphabet = splitUtf8(base);
+    
+    string extra = "αβγδεζηθικλμνξοπρστυφχψω±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥";
+    vector<string> extraChars = splitUtf8(extra);
+    for (const string& s : extraChars) {
+        if (alphabet.size() < 256) alphabet.push_back(s);
+    }
+    while (alphabet.size() < 256) alphabet.push_back("№" + to_string(alphabet.size()));
+
+    return alphabet;
+}
 
 extern "C" {
 
@@ -68,26 +83,27 @@ EXPORT size_t getMaxKeySize() {
 EXPORT const char* encrypt_text(const char* text, unsigned char key) {
     static string result;
     result.clear();
+    if (!text) return "";
 
-    vector<string> alphabet = splitUtf8(ALPH_STR);
-    vector<string> chars = splitUtf8(string(text));
+    vector<string> alphabet = getFullAlphabet();
+    vector<string> chars = splitUtf8(text);
     
-    unsigned char final_key = key % 128;
+    unsigned char k = key % 256;
 
     for (const string& c : chars) {
-        int index = -1;
-        for (int i = 0; i < 128; ++i) {
+        int idx = -1;
+        for (int i = 0; i < 256; ++i) {
             if (alphabet[i] == c) {
-                index = i;
+                idx = i;
                 break;
             }
         }
 
-        if (index == -1) {
+        if (idx == -1) {
             result += c;
         } else {
-            int newIndex = index ^ final_key;
-            result += alphabet[newIndex];
+            int newIdx = idx ^ k;
+            result += alphabet[newIdx];
         }
     }
     return result.c_str();

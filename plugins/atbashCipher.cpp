@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <ctime>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -11,8 +11,6 @@ using namespace std;
 #else
     #define EXPORT __attribute__((visibility("default")))
 #endif
-
-static string g_result;
 
 static vector<string> splitUtf8(const string& str) {
     vector<string> chars;
@@ -36,7 +34,8 @@ static const string ALPHABET_STR =
     "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
-    "0123456789";
+    "0123456789"
+    " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 extern "C" {
 
@@ -57,11 +56,11 @@ EXPORT const AlgorithmInfo* get_algorithm_info() {
     return &info;
 }
 
-EXPORT size_t getMinKeySize() { 
+EXPORT size_t getMinKeySize() {
     return 0;
 }
 
-EXPORT size_t getMaxKeySize() { 
+EXPORT size_t getMaxKeySize() {
     return 0;
 }
 

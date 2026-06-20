@@ -76,6 +76,10 @@ void handleText(vector<Plugin>& plugins) {
     
     string output(result);
     cout << "результат: " << output << endl;
+    
+    // HEX-вывод для текста
+    vector<uint8_t> bytes = stringToBytes(output);
+    cout << "результат (hex): " << bytesToHex(bytes) << endl;
 }
 
 void handleFile(vector<Plugin>& plugins) {
@@ -145,7 +149,6 @@ void handleFile(vector<Plugin>& plugins) {
         return;
     }
     
-    // Читаем файл как байты
     vector<unsigned char> data((istreambuf_iterator<char>(inFile)), istreambuf_iterator<char>());
     inFile.close();
     
@@ -156,7 +159,6 @@ void handleFile(vector<Plugin>& plugins) {
     
     cout << "размер файла: " << data.size() << " байт" << endl;
     
-    // Преобразуем байты в строку для encrypt_text/decrypt_text
     string inputData(data.begin(), data.end());
     string result;
     
@@ -166,7 +168,6 @@ void handleFile(vector<Plugin>& plugins) {
         result = plugin.decrypt(inputData.c_str(), key);
     }
     
-    // Записываем результат как байты
     ofstream outFile(outputPath, ios::binary);
     if (!outFile.is_open()) {
         cerr << "не удалось создать выходной файл" << endl;
