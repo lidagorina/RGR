@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -11,6 +13,25 @@ using namespace std;
 #else
     #define EXPORT __attribute__((visibility("default")))
 #endif
+
+static string to_hex(const string& s) {
+    ostringstream oss;
+    for (unsigned char c : s) {
+        oss << hex << setw(2) << setfill('0') << (int)c;
+    }
+    return oss.str();
+}
+
+static string from_hex(const string& s) {
+    string res;
+    for (size_t i = 0; i < s.length(); i += 2) {
+        if (i + 2 > s.length()) break;
+        string byteString = s.substr(i, 2);
+        char byte = (char)strtol(byteString.c_str(), nullptr, 16);
+        res.push_back(byte);
+    }
+    return res;
+}
 
 static vector<string> splitUtf8(const string& str) {
     vector<string> chars;
@@ -43,12 +64,17 @@ static vector<string> getFullAlphabet() {
 
     alphabet = splitUtf8(base);
     
-    string extra = "αβγδεζηθικλμνξοπρστυφχψω±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥";
+    string extra = "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥∠°†‡¶§©®™€£¥¢¤₾░▒▓│┤╡╢";
+    
     vector<string> extraChars = splitUtf8(extra);
     for (const string& s : extraChars) {
         if (alphabet.size() < 256) alphabet.push_back(s);
     }
-    while (alphabet.size() < 256) alphabet.push_back("№" + to_string(alphabet.size()));
+    
+    while (alphabet.size() < 256) {
+        alphabet.push_back("?");
+    }
+    if (alphabet.size() > 256) alphabet.resize(256);
 
     return alphabet;
 }
@@ -86,8 +112,39 @@ EXPORT const char* encrypt_text(const char* text, unsigned char key) {
     if (!text) return "";
 
     vector<string> alphabet = getFullAlphabet();
-    vector<string> chars = splitUtf8(text);
+    vector<string> chars = splitUtf8(string(text));
+    unsigned char k = key % 256;
+
+    for (const string& c : chars) {
+        int idx = -1;
+        for (int i = 0; i < 256; ++i) {
+            if (alphabet[i] == c) {
+                idx = i;
+                break;
+            }
+        }
+
+        if (idx == -1) {
+            result += c;
+        } else {
+            int newIdx = idx ^ k;
+            result += alphabet[newIdx];
+        }
+    }
     
+    result = to_hex(result);
+    return result.c_str();
+}
+
+EXPORT const char* decrypt_text(const char* text, unsigned char key) {
+    static string result;
+    result.clear();
+    if (!text) return "";
+    
+    string raw_data = from_hex(string(text));
+    
+    vector<string> alphabet = getFullAlphabet();
+    vector<string> chars = splitUtf8(raw_data);
     unsigned char k = key % 256;
 
     for (const string& c : chars) {
@@ -107,10 +164,6 @@ EXPORT const char* encrypt_text(const char* text, unsigned char key) {
         }
     }
     return result.c_str();
-}
-
-EXPORT const char* decrypt_text(const char* text, unsigned char key) {
-    return encrypt_text(text, key);
 }
 
 EXPORT unsigned char generate_key() {

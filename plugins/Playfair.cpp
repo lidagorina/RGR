@@ -12,8 +12,8 @@ using namespace std;
     #define EXPORT __attribute__((visibility("default")))
 #endif
 
-static const int M_SIZE = 13;
-static const int M_TOTAL = 169;
+static const int MATRIX_SIZE = 16;
+static const int MATRIX_TOTAL = 256;
 
 static vector<string> splitUtf8(const string& str) {
     vector<string> chars;
@@ -32,57 +32,68 @@ static vector<string> splitUtf8(const string& str) {
     return chars;
 }
 
-static const string ALPHABET_STR = 
-    "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789"
-    " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+static vector<string> getBaseAlphabet() {
+    string base = 
+        "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+        "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+        "\n\r\t"
+        "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+        "±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥∠°†‡¶§©®™€£¥¢¤₾"
+        "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧"
+        "ØøÆæßÞþÐð";
+
+    vector<string> alph = splitUtf8(base);
+    if (alph.size() > 256) alph.resize(256);
+    while (alph.size() < 256) alph.push_back("~");
+    return alph;
+}
 
 static vector<string> buildMatrix(unsigned char key_byte) {
-    vector<string> alphabet = splitUtf8(ALPHABET_STR);
+    vector<string> alphabet = getBaseAlphabet();
     vector<string> matrix;
     
     string keyChar = alphabet[key_byte % alphabet.size()];
     matrix.push_back(keyChar);
     
-    for (const string& c : alphabet) {
+    for (const string& s : alphabet) {
         bool exists = false;
         for (const string& m : matrix) {
-            if (m == c) {
+            if (m == s) {
                 exists = true;
                 break;
             }
         }
-        if (!exists) matrix.push_back(c);
+        if (!exists) matrix.push_back(s);
     }
-    
-    if (matrix.size() > M_TOTAL) matrix.resize(M_TOTAL);
-    while (matrix.size() < M_TOTAL) matrix.push_back(" ");
-    
+    if (matrix.size() > MATRIX_TOTAL) matrix.resize(MATRIX_TOTAL);
     return matrix;
 }
 
 static string processPair(const string& a, const string& b, const vector<string>& matrix, bool encrypt) {
     int idx1 = -1, idx2 = -1;
-    for (int i = 0; i < M_TOTAL; ++i) {
+    for (int i = 0; i < MATRIX_TOTAL; ++i) {
         if (matrix[i] == a) idx1 = i;
         if (matrix[i] == b) idx2 = i;
     }
-    
     if (idx1 == -1 || idx2 == -1) return a + b;
     
-    int r1 = idx1 / M_SIZE, c1 = idx1 % M_SIZE;
-    int r2 = idx2 / M_SIZE, c2 = idx2 % M_SIZE;
-    int shift = encrypt ? 1 : (M_SIZE - 1);
+    int r1 = idx1 / MATRIX_SIZE, c1 = idx1 % MATRIX_SIZE;
+    int r2 = idx2 / MATRIX_SIZE, c2 = idx2 % MATRIX_SIZE;
+    int shift = encrypt ? 1 : (MATRIX_SIZE - 1);
 
     if (r1 == r2) {
-        return matrix[r1 * M_SIZE + (c1 + shift) % M_SIZE] + matrix[r2 * M_SIZE + (c2 + shift) % M_SIZE];
+        return matrix[r1 * MATRIX_SIZE + (c1 + shift) % MATRIX_SIZE] + 
+               matrix[r2 * MATRIX_SIZE + (c2 + shift) % MATRIX_SIZE];
     } else if (c1 == c2) {
-        return matrix[((r1 + shift) % M_SIZE) * M_SIZE + c1] + matrix[((r2 + shift) % M_SIZE) * M_SIZE + c2];
+        return matrix[((r1 + shift) % MATRIX_SIZE) * MATRIX_SIZE + c1] + 
+               matrix[((r2 + shift) % MATRIX_SIZE) * MATRIX_SIZE + c2];
     } else {
-        return matrix[r1 * M_SIZE + c2] + matrix[r2 * M_SIZE + c1];
+        return matrix[r1 * MATRIX_SIZE + c2] + 
+               matrix[r2 * MATRIX_SIZE + c1];
     }
 }
 
@@ -117,14 +128,23 @@ EXPORT const char* encrypt_text(const char* text, unsigned char key) {
     static string result;
     result.clear();
     if (!text) return "";
-    
+
     vector<string> matrix = buildMatrix(key);
-    vector<string> chars = splitUtf8(text);
+    vector<string> chars = splitUtf8(string(text));
     
-    if (chars.size() % 2 != 0) chars.push_back(" ");
+    vector<string> prepared;
+    for (size_t i = 0; i < chars.size(); ++i) {
+        prepared.push_back(chars[i]);
+        if (prepared.size() % 2 != 0) {
+            if (i + 1 < chars.size() && chars[i] == chars[i + 1]) {
+                prepared.push_back("Ø");
+            }
+        }
+    }
+    if (prepared.size() % 2 != 0) prepared.push_back("Ø");
     
-    for (size_t i = 0; i < chars.size(); i += 2) {
-        result += processPair(chars[i], chars[i + 1], matrix, true);
+    for (size_t i = 0; i < prepared.size(); i += 2) {
+        result += processPair(prepared[i], prepared[i + 1], matrix, true);
     }
     return result.c_str();
 }
@@ -133,9 +153,9 @@ EXPORT const char* decrypt_text(const char* text, unsigned char key) {
     static string result;
     result.clear();
     if (!text) return "";
-    
+
     vector<string> matrix = buildMatrix(key);
-    vector<string> chars = splitUtf8(text);
+    vector<string> chars = splitUtf8(string(text));
     
     for (size_t i = 0; i + 1 < chars.size(); i += 2) {
         result += processPair(chars[i], chars[i + 1], matrix, false);

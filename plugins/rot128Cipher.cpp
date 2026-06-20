@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <ctime>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -42,16 +42,21 @@ static vector<string> getAlphabet() {
         "abcdefghijklmnopqrstuvwxyz"
         "0123456789"
         " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-        "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
-        "±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥";
+        "αβγδεζηθικλμνξοπρστυφχψω"
+        "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+        "±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥"
+        "∠°†‡¶§©®™€£¥¢¤₾"
+        "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧";
 
     alphabet = splitUtf8(base);
     
-    while (alphabet.size() < 256) {
-        alphabet.push_back("№" + to_string(alphabet.size()));
+    if (alphabet.size() > 256) {
+        alphabet.resize(256);
+    } else {
+        while (alphabet.size() < 256) {
+            alphabet.push_back("?");
+        }
     }
-    
-    if (alphabet.size() > 256) alphabet.resize(256);
     
     return alphabet;
 }
@@ -75,11 +80,11 @@ EXPORT const AlgorithmInfo* get_algorithm_info() {
     return &info;
 }
 
-EXPORT size_t getMinKeySize() { 
+EXPORT size_t getMinKeySize() {
     return 0;
 }
 
-EXPORT size_t getMaxKeySize() { 
+EXPORT size_t getMaxKeySize() {
     return 0;
 }
 
