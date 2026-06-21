@@ -43,14 +43,28 @@ static vector<string> getBaseAlphabet() {
         "0123456789"
         " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
         "\n\r\t"
-        "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
-        "±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥∠°†‡¶§©®™€£¥¢¤₾"
+        "αβγδεζηθικλμνξοπρστυφχψω"
+        "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+        "±≤≥≠≈∞∫√∆∑∏∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥"
+        "∠°†‡¶§©®™€£¥¢¤₾"
         "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧"
         "ØøÆæßÞþÐð";
+
     vector<string> alph = splitUtf8(base);
-    while (alph.size() < 256) alph.push_back("~");
-    if (alph.size() > 256) alph.resize(256);
-    return alph;
+    
+    vector<string> unique;
+    for (const string& s : alph) {
+        bool found = false;
+        for (const string& u : unique) {
+            if (u == s) { found = true; break; }
+        }
+        if (!found) unique.push_back(s);
+    }
+    
+    while (unique.size() < 256) unique.push_back("`");
+    if (unique.size() > 256) unique.resize(256);
+    
+    return unique;
 }
 
 static vector<string> buildMatrix(unsigned char key_byte) {
@@ -68,7 +82,7 @@ static vector<string> buildMatrix(unsigned char key_byte) {
         }
         if (!exists) matrix.push_back(s);
     }
-    while (matrix.size() < 256) matrix.push_back("~");
+    while (matrix.size() < 256) matrix.push_back("`");
     if (matrix.size() > 256) matrix.resize(256);
     return matrix;
 }
@@ -158,9 +172,15 @@ EXPORT const char* decrypt_text(const char* text, unsigned char key) {
     vector<string> matrix = buildMatrix(key);
     vector<string> chars = splitUtf8(string(text));
     
+    string temp;
     for (size_t i = 0; i + 1 < chars.size(); i += 2) {
-        result += processPair(chars[i], chars[i + 1], matrix, false);
+        temp += processPair(chars[i], chars[i + 1], matrix, false);
     }
+    
+    for (const string& c : splitUtf8(temp)) {
+        if (c != "Ø") result += c;
+    }
+    
     return result.c_str();
 }
 
