@@ -16,5 +16,6 @@ int readInt(const std::string& prompt);
 bool fileExists(const std::string& path);
 bool ensureDirectoryExists(const std::string& filePath);
 
+string getConfigValue(const string& key); 
 
 #endif

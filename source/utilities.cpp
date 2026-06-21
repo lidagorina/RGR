@@ -103,3 +103,25 @@ bool ensureDirectoryExists(const string& filePath) {
     return false;
 }
 
+string getConfigValue(const string& key) {
+    ifstream file("config/settings.cfg");
+    if (!file.is_open()) {
+        cerr << "не удалось открыть config/settings.cfg" << endl;
+        return "";
+    }
+    
+    string line;
+    while (getline(file, line)) {
+        size_t pos = line.find('=');
+        if (pos != string::npos) {
+            string k = line.substr(0, pos);
+            string v = line.substr(pos + 1);
+            k.erase(0, k.find_first_not_of(" \t"));
+            k.erase(k.find_last_not_of(" \t") + 1);
+            v.erase(0, v.find_first_not_of(" \t"));
+            v.erase(v.find_last_not_of(" \t") + 1);
+            if (k == key) return v;
+        }
+    }
+    return "";
+}
