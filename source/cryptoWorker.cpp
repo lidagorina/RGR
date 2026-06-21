@@ -3,6 +3,7 @@
 #include "menu.h"
 #include <iostream>
 #include <fstream>
+#include <cstring>
 
 using namespace std;
 
@@ -77,7 +78,6 @@ void handleText(vector<Plugin>& plugins) {
     string output(result);
     cout << "результат: " << output << endl;
     
-    // HEX-вывод для текста
     vector<uint8_t> bytes = stringToBytes(output);
     cout << "результат (hex): " << bytesToHex(bytes) << endl;
 }
@@ -178,4 +178,30 @@ void handleFile(vector<Plugin>& plugins) {
     outFile.close();
     
     cout << "результат сохранён в: " << outputPath << endl;
+}
+
+void processFileDirect(const Plugin& plugin, bool encrypt, const string& inPath, const string& outPath, unsigned char key) {
+    ifstream inFile(inPath, ios::binary);
+    if (!inFile) {
+        cerr << "файл не найден: " << inPath << endl;
+        return;
+    }
+
+    vector<char> buffer((istreambuf_iterator<char>(inFile)), istreambuf_iterator<char>());
+    inFile.close();
+
+    string content(buffer.begin(), buffer.end());
+    const char* resultData;
+    if (encrypt) {
+        resultData = plugin.encrypt(content.c_str(), key);
+    } else {
+        resultData = plugin.decrypt(content.c_str(), key);
+    }
+
+    string out = outPath.empty() ? inPath + (encrypt ? ".enc" : ".dec") : outPath;
+
+    ofstream outFile(out, ios::binary);
+    outFile.write(resultData, strlen(resultData));
+    outFile.close();
+    cout << "результат сохранён в: " << out << endl;
 }
