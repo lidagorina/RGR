@@ -76,10 +76,13 @@ void handleText(vector<Plugin>& plugins) {
     }
     
     string output(result);
+    if (plugin.name == "XOR" || plugin.name == "ChaCha20") {
+    cout << "результат (hex): " << output << endl;
+} else {
     cout << "результат: " << output << endl;
-    
     vector<uint8_t> bytes = stringToBytes(output);
     cout << "результат (hex): " << bytesToHex(bytes) << endl;
+}
 }
 
 void handleFile(vector<Plugin>& plugins) {
