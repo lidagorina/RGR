@@ -63,14 +63,21 @@ string readLine(const string& prompt) {
 // чтение числа с проверкой
 int readInt(const string& prompt) {
     cout << prompt;
-    int value;
-    while (!(cin >> value)) {
-        cin.clear();
-        cin.ignore(10000, '\n');
+    string input;
+    while (true) {
+        getline(cin, input);
+        bool isNumber = true;
+        for (char c : input) {
+            if (!isdigit(c)) {
+                isNumber = false;
+                break;
+            }
+        }
+        if (isNumber && !input.empty()) {
+            return stoi(input);
+        }
         cout << "ошибка: введите число: ";
     }
-    cin.ignore(10000, '\n');
-    return value;
 }
 
 // проверка существования файла

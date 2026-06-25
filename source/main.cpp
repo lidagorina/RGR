@@ -26,8 +26,8 @@ void print_help() {
     cout << "Примеры:" << endl;
     cout << "  ./cryptum --help" << endl;
     cout << "  ./cryptum --list" << endl;
-    cout << "  ./cryptum --algorithm caesar --generate-key" << endl;
-    cout << "  ./cryptum --algorithm caesar --mode encrypt --key 3 --input war.txt --output war.enc" << endl;
+    cout << "  ./cryptum --algorithm \"Цезарь\" --generate-key" << endl;
+    cout << "  ./cryptum --algorithm \"Цезарь\" --mode encrypt --key 3 --input war.txt --output war.enc" << endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -72,6 +72,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        if (algo_name.empty()) {
+            cerr << "ошибка: не указан алгоритм (--algorithm)" << endl;
+            return 1;
+        }
+
         Plugin* selected = nullptr;
         for (auto& p : plugins) {
             if (p.name == algo_name) {
@@ -93,7 +98,13 @@ int main(int argc, char* argv[]) {
         }
 
         if (!input_path.empty() && !key_val.empty()) {
-            unsigned char k = (unsigned char)stoi(key_val);
+            unsigned char k;
+            try {
+                k = (unsigned char)stoi(key_val);
+            } catch (...) {
+                cerr << "ошибка: ключ должен быть числом" << endl;
+                return 1;
+            }
             bool is_encrypt = (mode == "encrypt" || mode == "enc");
             processFileDirect(*selected, is_encrypt, input_path, output_path, k);
             unloadPlugins(plugins);
