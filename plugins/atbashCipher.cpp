@@ -12,48 +12,16 @@ using namespace std;
     #define EXPORT __attribute__((visibility("default")))
 #endif
 
-static vector<string> splitUtf8(const string& str) {
-    vector<string> chars;
-    for (size_t i = 0; i < str.length(); ) {
-        size_t len = 1;
-        unsigned char c = (unsigned char)str[i];
-        if (c >= 0x80) {
-            if ((c & 0xE0) == 0xC0) len = 2;
-            else if ((c & 0xF0) == 0xE0) len = 3;
-            else if ((c & 0xF8) == 0xF0) len = 4;
-        }
-        if (i + len > str.length()) len = str.length() - i;
-        chars.push_back(str.substr(i, len));
-        i += len;
-    }
-    return chars;
-}
-
-static const string ALPHABET_STR = 
-    "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789"
-    " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-
 extern "C" {
 
-struct AlgorithmInfo {
-    const char* name;
-    size_t key_size;
-    size_t block_size;
-    const char* key_info;
-};
+EXPORT const char* getAlgorithmName() {
+    return "Atbash (байтовый)";
+}
 
-EXPORT const AlgorithmInfo* get_algorithm_info() {
-    static AlgorithmInfo info = {
-        "Atbash",
-        0,
-        0,
-        "ключ не требуется"
-    };
-    return &info;
+EXPORT const char* getKeyInfo() {
+    return "Зеркальное отображение байтов (0↔255, 1↔254, ...)\n"
+           "Инволютивный шифр (шифрование = дешифрование).\n"
+           "Не требует ключа.";
 }
 
 EXPORT size_t getMinKeySize() {
@@ -64,44 +32,38 @@ EXPORT size_t getMaxKeySize() {
     return 0;
 }
 
-EXPORT const char* encrypt_text(const char* text, unsigned char key) {
-    static string result;
-    result.clear();
-    (void)key;
+EXPORT int encrypt(const uint8_t* data, size_t dataSize,
+                   const uint8_t* key, size_t keySize,
+                   uint8_t* output, size_t* outputSize) {
+    if (!data || !output || !outputSize) return -1;
+    (void)key; (void)keySize;
 
-    vector<string> alphabet = splitUtf8(ALPHABET_STR);
-    vector<string> chars = splitUtf8(string(text));
-    int size = (int)alphabet.size();
+    if (*outputSize < dataSize) return -3;
 
-    for (const string& c : chars) {
-        int idx = -1;
-        for (int i = 0; i < size; ++i) {
-            if (alphabet[i] == c) {
-                idx = i;
-                break;
-            }
-        }
-
-        if (idx == -1) {
-            result += c;
-        } else {
-            int revIdx = size - 1 - idx;
-            result += alphabet[revIdx];
-        }
+    for (size_t i = 0; i < dataSize; ++i) {
+        output[i] = 255 - data[i];
     }
-    return result.c_str();
-}
-
-EXPORT const char* decrypt_text(const char* text, unsigned char key) {
-    return encrypt_text(text, key);
-}
-
-EXPORT unsigned char generate_key() {
+    *outputSize = dataSize;
     return 0;
 }
 
-EXPORT void free_memory(void* ptr) {
-    // ничего не делаем
+EXPORT int decrypt(const uint8_t* data, size_t dataSize,
+                   const uint8_t* key, size_t keySize,
+                   uint8_t* output, size_t* outputSize) {
+    return encrypt(data, dataSize, key, keySize, output, outputSize);
+}
+
+EXPORT int generateKey(uint8_t* keyBuffer, size_t* keyBufferSize, int param) {
+    if (!keyBuffer || !keyBufferSize) return -1;
+    (void)param;
+
+    const char* message = "Шифр Атбаш не требует ключа";
+    size_t msgLen = strlen(message);
+    if (*keyBufferSize < msgLen) return -3;
+
+    memcpy(keyBuffer, message, msgLen);
+    *keyBufferSize = msgLen;
+    return 0;
 }
 
 }
