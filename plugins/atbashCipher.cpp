@@ -1,9 +1,10 @@
 #include <cstdlib>
 #include <cstring>
-#include <string>
+#include <cstdint>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -13,43 +14,16 @@ using namespace std;
     #define EXPORT __attribute__((visibility("default")))
 #endif
 
-static string g_result;
-
-static string to_hex(const string& s) {
-    ostringstream oss;
-    for (unsigned char c : s) {
-        oss << hex << setw(2) << setfill('0') << (int)c;
-    }
-    return oss.str();
-}
-
-static string from_hex(const string& s) {
-    string res;
-    for (size_t i = 0; i + 1 < s.length(); i += 2) {
-        string byteStr = s.substr(i, 2);
-        char byte = (char)strtol(byteStr.c_str(), nullptr, 16);
-        res.push_back(byte);
-    }
-    return res;
-}
-
 extern "C" {
 
-struct AlgorithmInfo {
-    const char* name;
-    size_t key_size;
-    size_t block_size;
-    const char* key_info;
-};
+EXPORT const char* getAlgorithmName() {
+    return "Atbash (байтовый)";
+}
 
-EXPORT const AlgorithmInfo* get_algorithm_info() {
-    static AlgorithmInfo info = {
-        "Atbash",
-        0,
-        0,
-        "ключ не требуется"
-    };
-    return &info;
+EXPORT const char* getKeyInfo() {
+    return "Зеркальное отображение байтов (0↔255, 1↔254, ...)\n"
+           "Инволютивный шифр (шифрование = дешифрование).\n"
+           "Не требует ключа.";
 }
 
 EXPORT size_t getMinKeySize() {
@@ -60,36 +34,38 @@ EXPORT size_t getMaxKeySize() {
     return 0;
 }
 
-EXPORT const char* encrypt_text(const char* text, unsigned char key) {
-    string input(text);
-    g_result = input;
-    (void)key;
+EXPORT int encrypt(const uint8_t* data, size_t dataSize,
+                   const uint8_t* key, size_t keySize,
+                   uint8_t* output, size_t* outputSize) {
+    if (!data || !output || !outputSize) return -1;
+    (void)key; (void)keySize;
 
-    for (size_t i = 0; i < g_result.size(); ++i) {
-        g_result[i] = static_cast<char>(255 - static_cast<unsigned char>(g_result[i]));
+    if (*outputSize < dataSize) return -3;
+
+    for (size_t i = 0; i < dataSize; ++i) {
+        output[i] = 255 - data[i];
     }
-
-    g_result = to_hex(g_result);
-    return g_result.c_str();
-}
-
-EXPORT const char* decrypt_text(const char* text, unsigned char key) {
-    string input = from_hex(string(text));
-    g_result = input;
-    (void)key;
-
-    for (size_t i = 0; i < g_result.size(); ++i) {
-        g_result[i] = static_cast<char>(255 - static_cast<unsigned char>(g_result[i]));
-    }
-
-    return g_result.c_str();
-}
-
-EXPORT unsigned char generate_key() {
+    *outputSize = dataSize;
     return 0;
 }
 
-EXPORT void free_memory(void* ptr) {
+EXPORT int decrypt(const uint8_t* data, size_t dataSize,
+                   const uint8_t* key, size_t keySize,
+                   uint8_t* output, size_t* outputSize) {
+    return encrypt(data, dataSize, key, keySize, output, outputSize);
+}
+
+EXPORT int generateKey(uint8_t* keyBuffer, size_t* keyBufferSize, int param) {
+    if (!keyBuffer || !keyBufferSize) return -1;
+    (void)param;
+
+    const char* message = "Шифр Атбаш не требует ключа";
+    size_t msgLen = strlen(message);
+    if (*keyBufferSize < msgLen) return -3;
+
+    memcpy(keyBuffer, message, msgLen);
+    *keyBufferSize = msgLen;
+    return 0;
 }
 
 }
