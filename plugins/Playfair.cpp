@@ -18,15 +18,12 @@ static const int MATRIX_TOTAL = 256;
 
 static vector<string> splitUtf8(const string& str) {
     vector<string> chars;
-    if (str.empty()) return chars;
     for (size_t i = 0; i < str.length(); ) {
         size_t len = 1;
         unsigned char c = (unsigned char)str[i];
-        if (c >= 0x80) {
-            if ((c & 0xE0) == 0xC0) len = 2;
-            else if ((c & 0xF0) == 0xE0) len = 3;
-            else if ((c & 0xF8) == 0xF0) len = 4;
-        }
+        if (c >= 0xF0) len = 4;
+        else if (c >= 0xE0) len = 3;
+        else if (c >= 0xC0) len = 2;
         if (i + len > str.length()) len = str.length() - i;
         chars.push_back(str.substr(i, len));
         i += len;
@@ -34,56 +31,39 @@ static vector<string> splitUtf8(const string& str) {
     return chars;
 }
 
-static vector<string> getBaseAlphabet() {
-    string base = 
-        "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-        "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789"
-        " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-        "\n\r\t"
-        "αβγδεζηθικλμνξοπρστυφχψω"
-        "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
-        "±≤≥≠≈∞∫√∆∑∏∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥"
-        "∠°†‡¶§©®™€£¥¢¤₾"
-        "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧"
-        "ØøÆæßÞþÐð";
-
-    vector<string> alph = splitUtf8(base);
-    
-    vector<string> unique;
-    for (const string& s : alph) {
-        bool found = false;
-        for (const string& u : unique) {
-            if (u == s) { found = true; break; }
-        }
-        if (!found) unique.push_back(s);
-    }
-    
-    while (unique.size() < 256) unique.push_back("`");
-    if (unique.size() > 256) unique.resize(256);
-    
-    return unique;
-}
-
 static vector<string> buildMatrix(unsigned char key_byte) {
-    vector<string> alphabet = getBaseAlphabet();
     vector<string> matrix;
     matrix.reserve(256);
 
-    string keyChar = alphabet[key_byte % alphabet.size()];
-    matrix.push_back(keyChar);
-    
-    for (const string& s : alphabet) {
+    // Добавляем ключевой символ (ASCII)
+    char keyChar = static_cast<char>(key_byte);
+    matrix.push_back(string(1, keyChar));
+
+    // Добавляем все ASCII символы (0-255)
+    for (int i = 0; i < 256; ++i) {
+        char c = static_cast<char>(i);
+        string s(1, c);
+        
         bool exists = false;
         for (const string& m : matrix) {
-            if (m == s) { exists = true; break; }
+            if (m == s) {
+                exists = true;
+                break;
+            }
         }
-        if (!exists) matrix.push_back(s);
+        if (!exists) {
+            matrix.push_back(s);
+        }
     }
-    while (matrix.size() < 256) matrix.push_back("`");
-    if (matrix.size() > 256) matrix.resize(256);
+
+    // Гарантируем ровно 256 элементов
+    while (matrix.size() < 256) {
+        matrix.push_back("?");
+    }
+    if (matrix.size() > 256) {
+        matrix.resize(256);
+    }
+    
     return matrix;
 }
 
@@ -136,12 +116,18 @@ EXPORT const AlgorithmInfo* get_algorithm_info() {
     return &info;
 }
 
-EXPORT size_t getMinKeySize() { return 1; }
-EXPORT size_t getMaxKeySize() { return 255; }
+EXPORT size_t getMinKeySize() {
+    return 1;
+}
+
+EXPORT size_t getMaxKeySize() {
+    return 255;
+}
 
 EXPORT const char* encrypt_text(const char* text, unsigned char key) {
     static string result;
     result.clear();
+
     if (!text || strlen(text) == 0) return "";
 
     vector<string> matrix = buildMatrix(key);
@@ -152,11 +138,11 @@ EXPORT const char* encrypt_text(const char* text, unsigned char key) {
         prepared.push_back(chars[i]);
         if (prepared.size() % 2 != 0) {
             if (i + 1 < chars.size() && chars[i] == chars[i + 1]) {
-                prepared.push_back("Ø");
+                prepared.push_back("?");
             }
         }
     }
-    if (prepared.size() % 2 != 0) prepared.push_back("Ø");
+    if (prepared.size() % 2 != 0) prepared.push_back("?");
     
     for (size_t i = 0; i + 1 < prepared.size(); i += 2) {
         result += processPair(prepared[i], prepared[i + 1], matrix, true);
@@ -167,6 +153,7 @@ EXPORT const char* encrypt_text(const char* text, unsigned char key) {
 EXPORT const char* decrypt_text(const char* text, unsigned char key) {
     static string result;
     result.clear();
+
     if (!text || strlen(text) == 0) return "";
 
     vector<string> matrix = buildMatrix(key);
@@ -178,7 +165,7 @@ EXPORT const char* decrypt_text(const char* text, unsigned char key) {
     }
     
     for (const string& c : splitUtf8(temp)) {
-        if (c != "Ø") result += c;
+        if (c != "?") result += c;
     }
     
     return result.c_str();
