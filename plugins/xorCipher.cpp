@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <vector>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -14,6 +13,8 @@ using namespace std;
     #define EXPORT __attribute__((visibility("default")))
 #endif
 
+static string g_result;
+
 static string to_hex(const string& s) {
     ostringstream oss;
     for (unsigned char c : s) {
@@ -24,59 +25,12 @@ static string to_hex(const string& s) {
 
 static string from_hex(const string& s) {
     string res;
-    for (size_t i = 0; i < s.length(); i += 2) {
-        if (i + 2 > s.length()) break;
-        string byteString = s.substr(i, 2);
-        char byte = (char)strtol(byteString.c_str(), nullptr, 16);
+    for (size_t i = 0; i + 1 < s.length(); i += 2) {
+        string byteStr = s.substr(i, 2);
+        char byte = (char)strtol(byteStr.c_str(), nullptr, 16);
         res.push_back(byte);
     }
     return res;
-}
-
-static vector<string> splitUtf8(const string& str) {
-    vector<string> chars;
-    for (size_t i = 0; i < str.length(); ) {
-        size_t len = 1;
-        unsigned char c = (unsigned char)str[i];
-        if (c >= 0x80) {
-            if ((c & 0xE0) == 0xC0) len = 2;
-            else if ((c & 0xF0) == 0xE0) len = 3;
-            else if ((c & 0xF8) == 0xF0) len = 4;
-        }
-        if (i + len > str.length()) len = str.length() - i;
-        chars.push_back(str.substr(i, len));
-        i += len;
-    }
-    return chars;
-}
-
-static vector<string> getFullAlphabet() {
-    static vector<string> alphabet;
-    if (!alphabet.empty()) return alphabet;
-
-    string base = 
-        "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-        "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789"
-        " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-
-    alphabet = splitUtf8(base);
-    
-    string extra = "αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ±≤≥≠≈∞∫√∆π∑∏μ∂¬∧∨∩∪⊂⊃⊄⊆⊇⊕⊗⊥∠°†‡¶§©®™€£¥¢¤₾░▒▓│┤╡╢";
-    
-    vector<string> extraChars = splitUtf8(extra);
-    for (const string& s : extraChars) {
-        if (alphabet.size() < 256) alphabet.push_back(s);
-    }
-    
-    while (alphabet.size() < 256) {
-        alphabet.push_back("?");
-    }
-    if (alphabet.size() > 256) alphabet.resize(256);
-
-    return alphabet;
 }
 
 extern "C" {
@@ -98,72 +52,31 @@ EXPORT const AlgorithmInfo* get_algorithm_info() {
     return &info;
 }
 
-EXPORT size_t getMinKeySize() { 
+EXPORT size_t getMinKeySize() {
     return 1;
 }
 
-EXPORT size_t getMaxKeySize() { 
+EXPORT size_t getMaxKeySize() {
     return 255;
 }
 
 EXPORT const char* encrypt_text(const char* text, unsigned char key) {
-    static string result;
-    result.clear();
-    if (!text) return "";
-
-    vector<string> alphabet = getFullAlphabet();
-    vector<string> chars = splitUtf8(string(text));
-    unsigned char k = key % 256;
-
-    for (const string& c : chars) {
-        int idx = -1;
-        for (int i = 0; i < 256; ++i) {
-            if (alphabet[i] == c) {
-                idx = i;
-                break;
-            }
-        }
-
-        if (idx == -1) {
-            result += c;
-        } else {
-            int newIdx = idx ^ k;
-            result += alphabet[newIdx];
-        }
+    string input(text);
+    g_result = input;
+    for (size_t i = 0; i < g_result.size(); ++i) {
+        g_result[i] = static_cast<char>(static_cast<unsigned char>(g_result[i]) ^ key);
     }
-    
-    result = to_hex(result);
-    return result.c_str();
+    g_result = to_hex(g_result);
+    return g_result.c_str();
 }
 
 EXPORT const char* decrypt_text(const char* text, unsigned char key) {
-    static string result;
-    result.clear();
-    if (!text) return "";
-    
-    string raw_data = from_hex(string(text));
-    
-    vector<string> alphabet = getFullAlphabet();
-    vector<string> chars = splitUtf8(raw_data);
-    unsigned char k = key % 256;
-
-    for (const string& c : chars) {
-        int idx = -1;
-        for (int i = 0; i < 256; ++i) {
-            if (alphabet[i] == c) {
-                idx = i;
-                break;
-            }
-        }
-
-        if (idx == -1) {
-            result += c;
-        } else {
-            int newIdx = idx ^ k;
-            result += alphabet[newIdx];
-        }
+    string input = from_hex(string(text));
+    g_result = input;
+    for (size_t i = 0; i < g_result.size(); ++i) {
+        g_result[i] = static_cast<char>(static_cast<unsigned char>(g_result[i]) ^ key);
     }
-    return result.c_str();
+    return g_result.c_str();
 }
 
 EXPORT unsigned char generate_key() {
