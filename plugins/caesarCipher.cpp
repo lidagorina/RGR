@@ -2,7 +2,8 @@
 #include <cstring>
 #include <string>
 #include <ctime>
-#include <vector>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -14,27 +15,22 @@ using namespace std;
 
 static string g_result;
 
-static const string ALPHABET_STR = 
-    "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-    "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789"
-    " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-
-static vector<string> splitUtf8(const string& str) {
-    vector<string> chars;
-    for (size_t i = 0; i < str.length(); ) {
-        size_t len = 1;
-        unsigned char c = (unsigned char)str[i];
-        if (c >= 0xF0) len = 4;
-        else if (c >= 0xE0) len = 3;
-        else if (c >= 0xC0) len = 2;
-        if (i + len > str.length()) len = str.length() - i;
-        chars.push_back(str.substr(i, len));
-        i += len;
+static string to_hex(const string& s) {
+    ostringstream oss;
+    for (unsigned char c : s) {
+        oss << hex << setw(2) << setfill('0') << (int)c;
     }
-    return chars;
+    return oss.str();
+}
+
+static string from_hex(const string& s) {
+    string res;
+    for (size_t i = 0; i + 1 < s.length(); i += 2) {
+        string byteStr = s.substr(i, 2);
+        char byte = (char)strtol(byteStr.c_str(), nullptr, 16);
+        res.push_back(byte);
+    }
+    return res;
 }
 
 extern "C" {
@@ -56,70 +52,31 @@ EXPORT const AlgorithmInfo* get_algorithm_info() {
     return &info;
 }
 
-EXPORT size_t getMinKeySize() { 
+EXPORT size_t getMinKeySize() {
     return 1;
 }
 
-EXPORT size_t getMaxKeySize() { 
+EXPORT size_t getMaxKeySize() {
     return 255;
 }
 
 EXPORT const char* encrypt_text(const char* text, unsigned char key) {
-    static string result;
-    result.clear();
-
-    vector<string> alphabet = splitUtf8(ALPHABET_STR);
-    vector<string> chars = splitUtf8(string(text));
-
-    int shift = key % alphabet.size();
-    if (shift == 0) shift = 3;
-
-    for (const string& c : chars) {
-        int index = -1;
-        for (size_t i = 0; i < alphabet.size(); ++i) {
-            if (alphabet[i] == c) {
-                index = (int)i;
-                break;
-            }
-        }
-
-        if (index == -1) {
-            result += c;
-        } else {
-            int newIndex = (index + shift) % (int)alphabet.size();
-            result += alphabet[newIndex];
-        }
+    string input(text);
+    g_result = input;
+    for (size_t i = 0; i < g_result.size(); ++i) {
+        g_result[i] = static_cast<char>((static_cast<unsigned char>(g_result[i]) + key) % 256);
     }
-    return result.c_str();
+    g_result = to_hex(g_result);
+    return g_result.c_str();
 }
 
 EXPORT const char* decrypt_text(const char* text, unsigned char key) {
-    static string result;
-    result.clear();
-
-    vector<string> alphabet = splitUtf8(ALPHABET_STR);
-    vector<string> chars = splitUtf8(string(text));
-
-    int shift = key % alphabet.size();
-    if (shift == 0) shift = 3;
-
-    for (const string& c : chars) {
-        int index = -1;
-        for (size_t i = 0; i < alphabet.size(); ++i) {
-            if (alphabet[i] == c) {
-                index = (int)i;
-                break;
-            }
-        }
-
-        if (index == -1) {
-            result += c;
-        } else {
-            int newIndex = (index - shift + (int)alphabet.size()) % (int)alphabet.size();
-            result += alphabet[newIndex];
-        }
+    string input = from_hex(string(text));
+    g_result = input;
+    for (size_t i = 0; i < g_result.size(); ++i) {
+        g_result[i] = static_cast<char>((static_cast<unsigned char>(g_result[i]) - key + 256) % 256);
     }
-    return result.c_str();
+    return g_result.c_str();
 }
 
 EXPORT unsigned char generate_key() {
