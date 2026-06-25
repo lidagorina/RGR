@@ -1,4 +1,3 @@
-// Листинг rot128Cipher.cpp
 #include <cstdlib>
 #include <cstring>
 #include <string>
